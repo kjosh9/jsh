@@ -1,3 +1,3 @@
 # jsh
 
-Josh's shell
+Josh's SHell
