@@ -5,15 +5,10 @@
 #include <string.h>
 #include <stdbool.h>
 #include <malloc.h>
+#include "command.h"
 
 #define MAX_INPUT_LEN 256
 #define MAX_INPUT_TOKENS 10
-
-struct commandNode {
-    char* command;
-    struct commandNode* prev;
-    struct commandNode* next;
-};
 
 char** parse_input(char * input)
 {
@@ -65,8 +60,9 @@ int main(void)
         
         if (!strcmp(command[0], "exit")) {
             exit_called = true;
+        } else if (!strcmp(command[0], "history")) {
+            printHistory(head);
         } else {
- 
             if (!strcmp(command[0], "!!")) {
                 for (int i=0; i<MAX_INPUT_TOKENS; i++) {
                     free(command[i]);
@@ -91,11 +87,6 @@ int main(void)
         }
     }
 
-    while(head != NULL) {
-        struct commandNode * temp = head->next;
-        free(head->command);
-        free(head);
-        head = temp;
-    }
+    freeHistory(head);
     return 0;
 }
