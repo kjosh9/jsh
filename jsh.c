@@ -36,6 +36,14 @@ void execute_command(char ** command)
     }
 }
 
+void free_command(char ** command)
+{
+    for (int i=0; i<MAX_INPUT_TOKENS; i++) {
+        free(command[i]);
+    }
+    free(command);
+}
+
 int main(void)
 {
     char input_str[256];
@@ -62,22 +70,23 @@ int main(void)
             exit_called = true;
         } else if (!strcmp(command[0], "history")) {
             printHistory(head);
-        } else {
-            if (!strcmp(command[0], "!!")) {
-                for (int i=0; i<MAX_INPUT_TOKENS; i++) {
-                    free(command[i]);
-                }
-                free(command);
+        } else if (!strcmp(command[0], "!!")) {
+            if (curr->prev != NULL) {
+                free_command(command);
                 command = parse_input(curr->prev->command);
+                if (strcmp(command[0], "!!")) {
+                    execute_command(command);
+                } else {
+                    printf("Error: cannot call \"!!\" consecutively\n");
+                }
+            } else {
+                printf("Error: No previous commands to be run\n");
             }
-
+        } else {
             execute_command(command);
         }
-        for (int i=0; i<MAX_INPUT_TOKENS; i++) {
-            free(command[i]);
-        }
-        free(command);
 
+        free_command(command);
         if(!exit_called) {
             struct commandNode * next = malloc(sizeof *head);
             curr->next = next;
