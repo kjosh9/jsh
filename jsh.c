@@ -95,6 +95,11 @@ int main(void)
 
         if (!strcmp(command[0], "exit")) {
             exit_called = true;
+        } else if (!strcmp(command[0], "help")) {
+            printf("commands:\n");
+            printf("history                    | prints history to standard output\n");
+            printf("<command> -> <destination> | redirect output\n");
+            printf("exit                       | exits terminal\n");
         } else if (!strcmp(command[0], "history")) {
             printHistory(head);
         } else if (!strcmp(command[0], "!!")) {
