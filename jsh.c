@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <malloc.h>
+#include <fcntl.h>
 #include "command.h"
 
 #define MAX_INPUT_LEN 256
@@ -27,10 +28,36 @@ char** parse_input(char * input)
     return tokens;
 }
 
+bool has_redirect(char ** command, int * output_index)
+{
+    int i = 0;
+    while(command[i] != NULL) {
+        if (strcmp(command[i], "->") == 0) {
+            *output_index = i+1;
+            return true;
+        }
+        i++;
+    }
+    return false;
+}
+
 void execute_command(char ** command)
 {
-    if (fork() == 0) {
+   if (fork() == 0) {
+        int output_index = 0;
+        int fd;
+        if (has_redirect(command, &output_index)) {
+            fd = open(command[output_index], O_CREAT|O_TRUNC|O_WRONLY, 0666);
+            if (fd < 0) {
+                printf("Error: cannot open file %s\n", command[output_index]);
+            } 
+            for (int i = output_index-1; i < MAX_INPUT_TOKENS; i++) {
+                command[i] = NULL;
+            }
+            dup2(fd, 1);
+        }
         execvp(command[0], command);
+        printf("Failed to invoke command\n");
     } else {
         wait(NULL);
     }
@@ -65,7 +92,7 @@ int main(void)
             *p = '\0';
         curr->command = strdup(input_str);
         char** command = parse_input(input_str);
-        
+
         if (!strcmp(command[0], "exit")) {
             exit_called = true;
         } else if (!strcmp(command[0], "history")) {
