@@ -5,18 +5,6 @@ struct commandNode {
     struct commandNode* next;
 };
 
-void freeHistory(struct commandNode * head) {
-    while(head != NULL) {
-        struct commandNode * temp = head->next;
-        free(head->command);
-        free(head);
-        head = temp;
-    }
-}
+void freeHistory(struct commandNode * head);
 
-void printHistory(struct commandNode * head) {
-    while(head != NULL) {
-        printf("%s\n", head->command);
-        head = head->next;
-    }
-}
+void printHistory(struct commandNode * head);
