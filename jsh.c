@@ -28,12 +28,12 @@ char** parse_input(char * input)
     return tokens;
 }
 
-bool has_redirect(char ** command, int * output_index)
+bool has_substring(char ** command, char * substring, int * op_index)
 {
     int i = 0;
     while(command[i] != NULL) {
-        if (strcmp(command[i], "->") == 0) {
-            *output_index = i+1;
+        if (strcmp(command[i], substring) == 0) {
+            *op_index = i;
             return true;
         }
         i++;
@@ -43,23 +43,55 @@ bool has_redirect(char ** command, int * output_index)
 
 void execute_command(char ** command)
 {
-   if (fork() == 0) {
-        int output_index = 0;
+    int pid = fork();
+    // child process
+    if (pid == 0) {
+        int op_index = 0;
         int fd;
-        if (has_redirect(command, &output_index)) {
-            fd = open(command[output_index], O_CREAT|O_TRUNC|O_WRONLY, 0666);
+        int pipe_fd[2];
+        if (has_substring(command, "|", &op_index)) {
+            if (pipe(pipe_fd)==-1) {
+                perror("Error: pipe creation failed");
+            }
+
+            //split pre pipe from post pipe
+            char** command_2 = &command[op_index+1];
+            free(command[op_index]);
+            command[op_index] = NULL;
+
+            int pid_2 = fork();
+            // childs child process
+            if (pid_2 == 0) {
+                close(pipe_fd[1]);
+                dup2(pipe_fd[0], 0);
+                execvp(command[op_index+1], command_2);
+            // original child process
+            } else if (pid_2 > 0) {
+                close(pipe_fd[0]);
+                dup2(pipe_fd[1], 1);
+                execvp(command[0], command);
+            } else {
+                perror("Error: failed to create another fork");
+            }
+        } else if (has_substring(command, "->", &op_index)) {
+            fd = open(command[op_index+1], O_CREAT|O_TRUNC|O_WRONLY, 0666);
             if (fd < 0) {
-                printf("Error: cannot open file %s\n", command[output_index]);
+                printf("Error: cannot open file %s\n", command[op_index+1]);
             } 
-            for (int i = output_index-1; i < MAX_INPUT_TOKENS; i++) {
+            for (int i = op_index; i < MAX_INPUT_TOKENS; i++) {
                 command[i] = NULL;
             }
             dup2(fd, 1);
         }
+
         execvp(command[0], command);
-        printf("Failed to invoke command\n");
-    } else {
+        perror("Error: Failed to invoke command\n");
+
+    // parent process
+    } else if (pid > 0) {
         wait(NULL);
+    } else {
+        perror("Error: Fork failed");
     }
 }
 
@@ -99,6 +131,7 @@ int main(void)
             printf("commands:\n");
             printf("history                    | prints history to standard output\n");
             printf("<command> -> <destination> | redirect output\n");
+            printf("<command> | <command>      | redirect output of one command to another\n");
             printf("exit                       | exits terminal\n");
         } else if (!strcmp(command[0], "history")) {
             printHistory(head);
@@ -112,7 +145,7 @@ int main(void)
                     printf("Error: cannot call \"!!\" consecutively\n");
                 }
             } else {
-                printf("Error: No previous commands to be run\n");
+                perror("Error: No previous commands to be run\n");
             }
         } else {
             execute_command(command);
