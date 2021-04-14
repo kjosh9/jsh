@@ -11,6 +11,7 @@
 
 #define MAX_INPUT_LEN 256
 #define MAX_INPUT_TOKENS 10
+#define MAX_PATH 256
 
 void execute_command(char ** command)
 {
@@ -86,7 +87,9 @@ int main(void)
 
     while (!exit_called) {
 
-        printf("[jsh]-->");
+        char current_dir[MAX_PATH];
+        getcwd(current_dir, MAX_PATH);
+        printf("(%s)->jsh: ", current_dir);
         fgets(input_str, sizeof(input_str), stdin);
 
         //sanitize input if ending with newline
